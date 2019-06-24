@@ -1,8 +1,7 @@
 package main
 
 import (
-	"bytes"
-	"encoding/gob"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -16,7 +15,7 @@ func usage() {
 选项:
   无
 	不加任何参数收取未读邮件
-` , os.Args[0])
+`, os.Args[0])
 	flag.PrintDefaults()
 }
 
@@ -37,64 +36,33 @@ func init() {
 	flag.Usage = usage
 }
 
+type Euser struct {
+	PopServer  string
+	PopPort    int
+	SmtpServer string
+	SmtpPort   int
+	UserName   string
+	Passwd     string
+}
+
 // 获取账户
-func getUser() (u string, err error) {
+func getUser() (u Euser, err error) {
 	b, err := ioutil.ReadFile(".mailuser")
 	if err != nil {
-		fmt.Print(err)
-		return u, err
+		return
 	}
-	fmt.Println("==============")
-	fmt.Println(b)
-	u = string(b)
-	fmt.Println(u)
+	err = json.Unmarshal([]byte(b), &u)
 	return u, err
 }
 
 // 保存账户
 func saveUser(euser Euser) (err error) {
-	fmt.Println(euser)
-	d1, err := Encode(euser)
-	if err != nil{
-		fmt.Println(err)
-	}else {
-		err = ioutil.WriteFile(".mailuser", d1, 0644)
-		if err != nil {
-			panic(err)
-		}
+	js, err := json.Marshal(euser)
+	if err == nil {
+		err = ioutil.WriteFile(".mailuser", js, 0644)
 	}
-
 	return err
 }
-
-
-
-func Encode(data interface{}) ([]byte, error) {
-	buf := bytes.NewBuffer(nil)
-	enc := gob.NewEncoder(buf)
-	err := enc.Encode(data)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-func Decode(data []byte, to interface{}) error {
-	buf := bytes.NewBuffer(data)
-	dec := gob.NewDecoder(buf)
-	return dec.Decode(to)
-}
-
-
-type Euser struct {
-	popServer string
-	popPort int
-	smtpServer string
-	smtpPort int
-	userName string
-	passwd string
-}
-
 
 func main() {
 
@@ -104,13 +72,15 @@ func main() {
 	//fmt.Println(text)
 	//fmt.Println(files)
 	//fmt.Println(address)
-
-	u := Euser{"smtp.qq.com", 993, "imap.qq.com", 587, "xxxxx@qq.com", "xxxxxx"}
-	err := saveUser(u)
-	fmt.Println(err)
-	c, err := getUser()
-	fmt.Println(c, err)
-
-
+	user, err := getUser()
+	if err != nil {
+		fmt.Println("-----------------")
+		var user = Euser{"smtp.qq.com", 993, "imap.qq.com", 587, "xxxxx@qq.com", "xxxxxx"}
+		err = saveUser(user)
+		if err != nil {
+			return
+		}
+	}
+	fmt.Println(user)
 
 }
