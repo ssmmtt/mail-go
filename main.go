@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"github.com/emersion/go-imap"
+	"github.com/emersion/go-imap/client"
 	"gopkg.in/gomail.v2"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -42,8 +45,8 @@ func init() {
 }
 
 type Euser struct {
-	PopServer  string
-	PopPort    int
+	ImapServer string
+	ImapPort   int
 	SmtpServer string
 	SmtpPort   int
 	UserName   string
@@ -99,6 +102,37 @@ func sendmail(euser Euser) (err error) {
 	return err
 }
 
+func recvmail(euser Euser) {
+	var c *client.Client
+	var err error
+	log.Println("Connecting to server...")
+	c, err = client.DialTLS(euser.SmtpServer, nil)
+	//连接失败报错
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Connected")
+	//登陆
+	if err := c.Login(euser.UserName, euser.Passwd); err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Logged in")
+	mailboxes := make(chan *imap.MailboxInfo, 20)
+	go func() {
+		c.List("", "*", mailboxes)
+	}()
+	//列取邮件夹
+	for m := range mailboxes {
+
+		mbox, err := c.Select(m.Name, false)
+		if err != nil {
+			log.Fatal(err)
+		}
+		to := mbox.Messages
+		log.Printf("%s : %d", m.Name, to)
+	}
+}
+
 // 添加用户
 func addUser() Euser {
 	var (
@@ -110,9 +144,9 @@ func addUser() Euser {
 		passwd  string
 	)
 
-	fmt.Println("Please enter the email pop3 server: ")
+	fmt.Println("Please enter the email imap server: ")
 	_, _ = fmt.Scan(&pserver)
-	fmt.Println("Please enter the email pop3 port: ")
+	fmt.Println("Please enter the email imap port: ")
 	_, _ = fmt.Scan(&pport)
 	fmt.Println("Please enter the email smtp server: ")
 	_, _ = fmt.Scan(&sserver)
@@ -144,6 +178,7 @@ func main() {
 		flag.Usage()
 	} else if recv {
 		fmt.Println("recv...")
+		recvmail(user)
 	} else if address == "" {
 		flag.Usage()
 	} else {
