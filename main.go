@@ -31,8 +31,8 @@ func init() {
 	// 命令行参数定义
 	flag.StringVar(&subject, "s", "", "邮件主题，默认为空")
 	flag.StringVar(&text, "t", "", "邮件文本内容，默认为空")
-	flag.StringVar(&files, "f", "", "邮件附件，多个文件使用英文逗号分割，不要添加空格")
-	flag.StringVar(&address, "a", "", "收件人邮箱，多个邮箱使用英文逗号分割，不要加空格")
+	flag.StringVar(&files, "f", "", "邮件附件，多个文件使用英文逗号分割")
+	flag.StringVar(&address, "a", "", "收件人邮箱，多个邮箱使用英文逗号分割")
 	flag.Usage = usage
 }
 
@@ -66,16 +66,39 @@ func saveUser(euser Euser) (err error) {
 
 func main() {
 
-	//flag.Parse()
-	//
-	//fmt.Println(subject)
-	//fmt.Println(text)
-	//fmt.Println(files)
-	//fmt.Println(address)
+	flag.Parse()
+	flag.Usage()
+
+	fmt.Println(subject)
+	fmt.Println(text)
+	fmt.Println(files)
+	fmt.Println(address)
 	user, err := getUser()
 	if err != nil {
 		fmt.Println("-----------------")
-		var user = Euser{"smtp.qq.com", 993, "imap.qq.com", 587, "xxxxx@qq.com", "xxxxxx"}
+		var (
+			pserver string
+			pport   int
+			sserver string
+			sport   int
+			uname   string
+			passwd  string
+		)
+
+		fmt.Println("Please enter the email pop3 server: ")
+		_, _ = fmt.Scan(&pserver)
+		fmt.Println("Please enter the email pop3 port: ")
+		_, _ = fmt.Scan(&pport)
+		fmt.Println("Please enter the email smtp server: ")
+		_, _ = fmt.Scan(&sserver)
+		fmt.Println("Please enter the email smtp port: ")
+		_, _ = fmt.Scan(&sport)
+		fmt.Println("Please enter the email username: ")
+		_, _ = fmt.Scan(&uname)
+		fmt.Println("Please enter the email password: ")
+		_, _ = fmt.Scan(&passwd)
+
+		user = Euser{pserver, pport, sserver, sport, uname, passwd}
 		err = saveUser(user)
 		if err != nil {
 			return
