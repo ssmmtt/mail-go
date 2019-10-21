@@ -46,7 +46,7 @@ func init() {
 
 type Euser struct {
 	ImapServer string
-	ImapPort   int
+	ImapPort   string
 	SmtpServer string
 	SmtpPort   int
 	UserName   string
@@ -90,10 +90,13 @@ func sendmail(euser Euser) (err error) {
 	m.SetHeader("To", u...)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", text)
-	f := strings.Split(files, ",")
-	for _, i := range f {
-		m.Attach(i)
+	if files != "" {
+		f := strings.Split(files, ",")
+		for _, i := range f {
+			m.Attach(i)
+		}
 	}
+
 	d := gomail.NewDialer(euser.SmtpServer, euser.SmtpPort, euser.UserName, euser.Passwd)
 
 	// Send the email to Bob, Cora and Dan.
@@ -106,7 +109,7 @@ func recvmail(euser Euser) {
 	var c *client.Client
 	var err error
 	log.Println("Connecting to server...")
-	c, err = client.DialTLS(euser.SmtpServer, nil)
+	c, err = client.DialTLS(euser.ImapServer+":"+euser.ImapPort, nil)
 	//连接失败报错
 	if err != nil {
 		log.Fatal(err)
@@ -136,8 +139,8 @@ func recvmail(euser Euser) {
 // 添加用户
 func addUser() Euser {
 	var (
-		pserver string
-		pport   int
+		iserver string
+		iport   string
 		sserver string
 		sport   int
 		uname   string
@@ -145,9 +148,9 @@ func addUser() Euser {
 	)
 
 	fmt.Println("Please enter the email imap server: ")
-	_, _ = fmt.Scan(&pserver)
+	_, _ = fmt.Scan(&iserver)
 	fmt.Println("Please enter the email imap port: ")
-	_, _ = fmt.Scan(&pport)
+	_, _ = fmt.Scan(&iport)
 	fmt.Println("Please enter the email smtp server: ")
 	_, _ = fmt.Scan(&sserver)
 	fmt.Println("Please enter the email smtp port: ")
@@ -156,7 +159,7 @@ func addUser() Euser {
 	_, _ = fmt.Scan(&uname)
 	fmt.Println("Please enter the email password: ")
 	_, _ = fmt.Scan(&passwd)
-	return Euser{pserver, pport, sserver, sport, uname, passwd}
+	return Euser{iserver, iport, sserver, sport, uname, passwd}
 
 }
 
