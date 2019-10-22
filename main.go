@@ -120,20 +120,52 @@ func recvmail(euser Euser) {
 		log.Fatal(err)
 	}
 	log.Println("Logged in")
-	mailboxes := make(chan *imap.MailboxInfo, 20)
-	go func() {
-		c.List("", "*", mailboxes)
-	}()
-	//列取邮件夹
-	for m := range mailboxes {
 
-		mbox, err := c.Select(m.Name, false)
-		if err != nil {
+	//列取邮件夹
+	// Select INBOX
+	_, err = c.Select("INBOX", false)
+	if err != nil {
+		log.Fatal(err)
+	}
+	//unseen := mbox.UnseenSeqNum
+	//log.Printf("%d", unseen)
+
+	// Set search criteria
+	criteria := imap.NewSearchCriteria()
+	criteria.WithoutFlags = []string{imap.SeenFlag}
+	ids, err := c.Search(criteria)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("IDs found:", ids)
+
+	if len(ids) > 0 {
+		seqset := new(imap.SeqSet)
+		seqset.AddNum(ids...)
+
+		messages := make(chan *imap.Message, 1000)
+		done := make(chan error, 1)
+		go func() {
+			done <- c.Fetch(seqset, []imap.FetchItem{imap.FetchEnvelope}, messages)
+		}()
+
+		log.Println("Unseen messages:")
+		for msg := range messages {
+			log.Println("* ", msg.Body)
+
+			//mr, err := mail.CreateReader(msg.Flags)
+			//if err != nil {
+			//	log.Fatal(err)
+			//}
+			//header := mr.Header
+
+		}
+
+		if err := <-done; err != nil {
 			log.Fatal(err)
 		}
-		to := mbox.Messages
-		log.Printf("%s : %d", m.Name, to)
 	}
+
 }
 
 // 添加用户
